@@ -35,4 +35,7 @@ public class TaskStatusHistory {
     @Column(nullable = false)
     private LocalDateTime changedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "changed_by_user_id", nullable = false)
+    private User changedBy;
 }

@@ -1,17 +1,20 @@
 package com.example.taskmanageranalytics.service;
 
 import com.example.taskmanageranalytics.entity.Task;
+import com.example.taskmanageranalytics.entity.User;
 
 import java.util.List;
 
 public interface TaskService {
-    Task saveTask(String taskName, String taskDescription);
+    Task createTask(String taskName, String taskDescription, User author);
 
-    void deleteTask(Long taskId);
+    void deleteTask(Long taskId, User currentUser);
 
     Task getTask(Long taskId);
 
     List<Task> getAllTasks();
 
-    void updateTask(Long taskId, String taskName, String taskDescription);
+    List<Task> getUserTasks(User user);
+
+    Task updateTask(Long taskId, String taskName, String taskDescription, User currentUser);
 }

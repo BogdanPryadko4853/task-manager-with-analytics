@@ -1,6 +1,7 @@
 package com.example.taskmanageranalytics.service;
 
 import com.example.taskmanageranalytics.entity.Task;
+import com.example.taskmanageranalytics.entity.User;
 import com.example.taskmanageranalytics.repository.TaskRepository;
 import com.example.taskmanageranalytics.service.impl.TaskServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -9,13 +10,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class TaskServiceImplUnitTest {
+class TaskServiceImplUnitTest {
 
     @Mock
     private TaskRepository taskRepository;
@@ -23,173 +26,170 @@ public class TaskServiceImplUnitTest {
     @InjectMocks
     private TaskServiceImpl taskService;
 
+    private final User testUser = User.builder()
+            .id(1L)
+            .username("testuser")
+            .build();
+
+    private final Task testTask = Task.builder()
+            .id(1L)
+            .title("Test Task")
+            .description("Test Description")
+            .author(testUser)
+            .build();
+
     @Test
-    public void shouldCreateTaskTest() {
-        String taskName = "taskName";
-        String taskDescription = "taskDescription";
+    void createTask_ShouldReturnSavedTask() {
+        // Arrange
+        when(taskRepository.save(any(Task.class))).thenReturn(testTask);
 
-        when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> {
-            Task savedTask = invocation.getArgument(0);
-            return savedTask;
-        });
+        // Act
+        Task result = taskService.createTask("Test Task", "Test Description", testUser);
 
-        Task createdTask = taskService.saveTask(taskName, taskDescription);
-
-        assertNotNull(createdTask);
-        assertEquals(taskName, createdTask.getTitle());
-        assertEquals(taskDescription, createdTask.getDescription());
-
+        // Assert
+        assertNotNull(result);
+        assertEquals("Test Task", result.getTitle());
+        assertEquals("Test Description", result.getDescription());
+        assertEquals(testUser, result.getAuthor());
         verify(taskRepository, times(1)).save(any(Task.class));
     }
 
     @Test
-    public void shouldUpdateTaskTest() {
-        Long taskId = 1L;
-        String newTitle = "Новое название";
-        String newDescription = "Новое описание";
+    void deleteTask_ShouldDeleteTask_WhenUserIsAuthor() {
+        // Arrange
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
 
-        Task existingTask = new Task();
-        existingTask.setId(taskId);
-        existingTask.setTitle("Старое название");
-        existingTask.setDescription("Старое описание");
+        // Act
+        taskService.deleteTask(1L, testUser);
 
-        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
-        when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        taskService.updateTask(taskId, newTitle, newDescription);
-
-        assertEquals(newTitle, existingTask.getTitle());
-        assertEquals(newDescription, existingTask.getDescription());
-
-        verify(taskRepository, times(1)).findById(taskId);
-        verify(taskRepository, times(1)).save(existingTask);
+        // Assert
+        verify(taskRepository, times(1)).delete(testTask);
     }
 
     @Test
-    public void shouldThrowExceptionWhenTaskNotFound() {
-        Long taskId = 999L;
+    void deleteTask_ShouldThrowException_WhenTaskNotFound() {
+        // Arrange
+        when(taskRepository.findById(1L)).thenReturn(Optional.empty());
 
-        when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
-
-        assertThrows(RuntimeException.class, () -> {
-            taskService.updateTask(taskId, "Название", "Описание");
-        });
-
-        verify(taskRepository, times(1)).findById(taskId);
-        verify(taskRepository, never()).save(any());
-    }
-
-    @Test
-    public void shouldUpdateOnlyTitleWhenDescriptionIsNull() {
-        Long taskId = 1L;
-        String newTitle = "Только название";
-
-        Task existingTask = new Task();
-        existingTask.setId(taskId);
-        existingTask.setTitle("Старое название");
-        existingTask.setDescription("Описание");
-
-        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
-        when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        taskService.updateTask(taskId, newTitle, null);
-
-        assertEquals(newTitle, existingTask.getTitle());
-        assertEquals("Описание", existingTask.getDescription()); // Описание не изменилось
-    }
-
-    @Test
-    public void shouldUpdateOnlyDescriptionWhenTitleIsNull() {
-        Long taskId = 1L;
-        String newDescription = "Только описание";
-
-        Task existingTask = new Task();
-        existingTask.setId(taskId);
-        existingTask.setTitle("Название");
-        existingTask.setDescription("Старое описание");
-
-        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
-        when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        taskService.updateTask(taskId, null, newDescription);
-
-        assertEquals("Название", existingTask.getTitle()); // Название не изменилось
-        assertEquals(newDescription, existingTask.getDescription());
-    }
-
-    @Test
-    public void shouldDeleteExistingTask() {
-        Long taskId = 1L;
-        Task existingTask = new Task();
-        existingTask.setId(taskId);
-
-        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
-        doNothing().when(taskRepository).delete(existingTask);
-
-        taskService.deleteTask(taskId);
-
-        verify(taskRepository, times(1)).findById(taskId);
-        verify(taskRepository, times(1)).delete(existingTask);
-    }
-
-    @Test
-    public void shouldNotThrowExceptionWhenTaskNotFoundForDeletion() {
-        Long taskId = 999L;
-
-        when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
-
-        assertDoesNotThrow(() -> taskService.deleteTask(taskId));
-
-        verify(taskRepository, times(1)).findById(taskId);
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> taskService.deleteTask(1L, testUser));
         verify(taskRepository, never()).delete(any());
     }
 
     @Test
-    public void shouldReturnTaskWhenExists() {
-        Long taskId = 1L;
-        Task expectedTask = new Task();
-        expectedTask.setId(taskId);
+    void deleteTask_ShouldThrowException_WhenUserNotAuthor() {
+        // Arrange
+        User otherUser = User.builder().id(2L).username("other").build();
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
 
-        when(taskRepository.findById(taskId)).thenReturn(Optional.of(expectedTask));
-
-        Task result = taskService.getTask(taskId);
-
-        assertEquals(expectedTask, result);
-        verify(taskRepository, times(1)).findById(taskId);
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> taskService.deleteTask(1L, otherUser));
+        verify(taskRepository, never()).delete(any());
     }
 
     @Test
-    public void shouldReturnAllTasks() {
-        List<Task> expectedTasks = new ArrayList<>();
-        Task task1 = Task.builder()
-                .title("First Task")
-                .description("First Task")
-                .build();
-        Task task2 = Task.builder()
-                .title("Second Task")
-                .description("Second Task")
-                .build();
-        expectedTasks.add(task1);
-        expectedTasks.add(task2);
+    void getTask_ShouldReturnTask_WhenExists() {
+        // Arrange
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
 
-        when(taskRepository.findAll()).thenReturn(expectedTasks);
+        // Act
+        Task result = taskService.getTask(1L);
 
+        // Assert
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        verify(taskRepository, times(1)).findById(1L);
+    }
+
+    @Test
+    void getTask_ShouldThrowException_WhenNotFound() {
+        // Arrange
+        when(taskRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> taskService.getTask(1L));
+    }
+
+    @Test
+    void getAllTasks_ShouldReturnAllTasks() {
+        // Arrange
+        Task task2 = Task.builder().id(2L).title("Task 2").build();
+        when(taskRepository.findAll()).thenReturn(List.of(testTask, task2));
+
+        // Act
         List<Task> result = taskService.getAllTasks();
 
-        assertEquals(expectedTasks.size(), result.size());
-        assertEquals(expectedTasks, result);
+        // Assert
+        assertEquals(2, result.size());
         verify(taskRepository, times(1)).findAll();
     }
 
     @Test
-    public void shouldReturnEmptyListWhenNoTasks() {
-        when(taskRepository.findAll()).thenReturn(Collections.emptyList());
+    void getUserTasks_ShouldReturnUserTasks() {
+        // Arrange
+        when(taskRepository.findByAuthor(testUser)).thenReturn(List.of(testTask));
 
-        List<Task> result = taskService.getAllTasks();
+        // Act
+        List<Task> result = taskService.getUserTasks(testUser);
 
-        assertTrue(result.isEmpty());
-        verify(taskRepository, times(1)).findAll();
+        // Assert
+        assertEquals(1, result.size());
+        assertEquals(testTask, result.get(0));
+        verify(taskRepository, times(1)).findByAuthor(testUser);
     }
 
+    @Test
+    void updateTask_ShouldUpdateTask_WhenUserIsAuthor() {
+        // Arrange
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
+        // Act
+        Task result = taskService.updateTask(1L, "Updated Title", "Updated Desc", testUser);
+
+        // Assert
+        assertEquals("Updated Title", result.getTitle());
+        assertEquals("Updated Desc", result.getDescription());
+        verify(taskRepository, times(1)).save(testTask);
+    }
+
+    @Test
+    void updateTask_ShouldThrowException_WhenUserNotAuthor() {
+        // Arrange
+        User otherUser = User.builder().id(2L).username("other").build();
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+
+        // Act & Assert
+        assertThrows(RuntimeException.class,
+                () -> taskService.updateTask(1L, "Updated", "Desc", otherUser));
+        verify(taskRepository, never()).save(any());
+    }
+
+    @Test
+    void updateTask_ShouldUpdateOnlyTitle_WhenDescriptionIsNull() {
+        // Arrange
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Task result = taskService.updateTask(1L, "Updated Title", null, testUser);
+
+        // Assert
+        assertEquals("Updated Title", result.getTitle());
+        assertEquals("Test Description", result.getDescription());
+    }
+
+    @Test
+    void updateTask_ShouldUpdateOnlyDescription_WhenTitleIsNull() {
+        // Arrange
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(testTask));
+        when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Task result = taskService.updateTask(1L, null, "Updated Desc", testUser);
+
+        // Assert
+        assertEquals("Test Task", result.getTitle());
+        assertEquals("Updated Desc", result.getDescription());
+    }
 }

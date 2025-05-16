@@ -1,6 +1,7 @@
 package com.example.taskmanageranalytics.service.impl;
 
 import com.example.taskmanageranalytics.entity.Task;
+import com.example.taskmanageranalytics.entity.User;
 import com.example.taskmanageranalytics.repository.TaskRepository;
 import com.example.taskmanageranalytics.service.TaskService;
 import lombok.RequiredArgsConstructor;
@@ -17,18 +18,26 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    public Task saveTask(String taskName, String taskDescription) {
+    public Task createTask(String taskName, String taskDescription, User author) {
         Task task = Task.builder()
                 .title(taskName)
                 .description(taskDescription)
+                .author(author)
                 .build();
         return taskRepository.save(task);
     }
 
     @Override
     @Transactional
-    public void deleteTask(Long taskId) {
-        taskRepository.findById(taskId).ifPresent(taskRepository::delete);
+    public void deleteTask(Long taskId, User currentUser) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        if (!task.getAuthor().equals(currentUser)) {
+            throw new RuntimeException("Only task author can delete the task");
+        }
+
+        taskRepository.delete(task);
     }
 
     @Override
@@ -45,16 +54,28 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<Task> getUserTasks(User user) {
+        return taskRepository.findByAuthor(user);
+    }
+
+    @Override
     @Transactional
-    public void updateTask(Long taskId, String taskName, String taskDescription) {
+    public Task updateTask(Long taskId, String taskName, String taskDescription, User currentUser) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        if (!task.getAuthor().equals(currentUser)) {
+            throw new RuntimeException("Only task author can update the task");
+        }
+
         if (taskName != null) {
             task.setTitle(taskName);
         }
         if (taskDescription != null) {
             task.setDescription(taskDescription);
         }
-        taskRepository.save(task);
+
+        return taskRepository.save(task);
     }
 }

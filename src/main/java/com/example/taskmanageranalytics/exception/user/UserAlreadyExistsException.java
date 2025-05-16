@@ -1,4 +1,4 @@
-package com.example.taskmanageranalytics.exception;
+package com.example.taskmanageranalytics.exception.user;
 
 public class UserAlreadyExistsException extends RuntimeException {
     public UserAlreadyExistsException(String field, String value) {

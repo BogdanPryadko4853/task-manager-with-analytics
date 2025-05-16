@@ -1,4 +1,4 @@
-package com.example.taskmanageranalytics.exception;
+package com.example.taskmanageranalytics.exception.user;
 
 public class UserNotFoundException extends RuntimeException {
     public UserNotFoundException(Long id) {

@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @AllArgsConstructor
@@ -35,4 +37,34 @@ public class Task {
 
     private LocalDateTime completedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id")
+    private User assignee;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<TaskStatusHistory> statusHistory = new ArrayList<>();
+
+
+    public void changeStatus(TaskStatus newStatus, User changedBy) {
+        if (this.status != newStatus) {
+            TaskStatusHistory history = TaskStatusHistory.builder()
+                    .task(this)
+                    .oldStatus(this.status)
+                    .newStatus(newStatus)
+                    .changedBy(changedBy)
+                    .build();
+
+            this.statusHistory.add(history);
+            this.status = newStatus;
+
+            if (newStatus == TaskStatus.DONE) {
+                this.completedAt = LocalDateTime.now();
+            }
+        }
+    }
 }

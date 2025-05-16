@@ -1,7 +1,7 @@
 package com.example.taskmanageranalytics.service;
 
-import com.example.taskmanageranalytics.dto.UserRequest;
-import com.example.taskmanageranalytics.dto.UserResponse;
+import com.example.taskmanageranalytics.dto.user.UserRequest;
+import com.example.taskmanageranalytics.dto.user.UserResponse;
 import com.example.taskmanageranalytics.entity.User;
 
 import java.util.List;

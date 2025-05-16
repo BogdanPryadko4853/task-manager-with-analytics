@@ -1,4 +1,4 @@
-package com.example.taskmanageranalytics.dto;
+package com.example.taskmanageranalytics.dto.user;
 
 import com.example.taskmanageranalytics.entity.User;
 import lombok.Builder;

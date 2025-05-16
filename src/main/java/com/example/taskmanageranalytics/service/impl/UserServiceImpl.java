@@ -19,7 +19,7 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    //private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
@@ -34,8 +34,7 @@ public class UserServiceImpl implements UserService {
 
         User user = User.builder()
                 .username(userRequest.getUsername())
-                //.password(passwordEncoder.encode(userRequest.getPassword()))
-                .password(userRequest.getPassword())
+                .password(passwordEncoder.encode(userRequest.getPassword()))
                 .email(userRequest.getEmail())
                 .role(User.Role.USER)
                 .build();
@@ -74,7 +73,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
 
-        if (!user.getUsername().equals(userRequest.getUsername())){
+        if (!user.getUsername().equals(userRequest.getUsername())) {
             if (userRepository.existsByUsername(userRequest.getUsername())) {
                 throw new UserAlreadyExistsException("username", userRequest.getUsername());
             }
@@ -89,8 +88,7 @@ public class UserServiceImpl implements UserService {
         }
 
         if (userRequest.getPassword() != null && !userRequest.getPassword().isEmpty()) {
-            //user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
-            user.setPassword(userRequest.getPassword());
+            user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
         }
 
         User updatedUser = userRepository.save(user);
